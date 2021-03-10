@@ -105,19 +105,25 @@ class SummaryWriter(object):
 
     Args:
       tag: str: label for this data
-      image: ndarray: [H,W], [H,W,1], [H,W,3] save image in greyscale or colors.
+      image: ndarray: [H,W], [H,W,1], [H,W,3], [K,H,W], [K,H,W,1], [K,H,W,3]
+        Save image in greyscale or colors.
         Pixel values could be either uint8 or float.
         Floating point values should be in range [0, 1).
       step: int: training step
     """
     image = np.array(image)
-    if len(np.shape(image)) == 2:
-      image = image[:, :, np.newaxis]
-    if np.shape(image)[-1] == 1:
-      image = np.repeat(image, 3, axis=-1)
     # tf.summary.image expects image to have shape [k, h, w, c] where,
     # k = number of samples, h = height, w = width, c = number of channels.
-    image = image[np.newaxis, :, :, :]
+    if len(np.shape(image)) == 2:
+      image = image[np.newaxis, :, :, np.newaxis]
+    elif len(np.shape(image)) == 3:
+      # this could be either [k, h, w] or [h, w, c]
+      if np.shape(image)[-1] in (1, 3):
+        image = image[np.newaxis, :, :, :]
+      else:
+        image = image[:, :, :, np.newaxis]
+    if np.shape(image)[-1] == 1:
+      image = np.repeat(image, 3, axis=-1)
 
     # Convert to tensor value as tf.summary.image expects data to be a tensor.
     image = tf.convert_to_tensor(image)
